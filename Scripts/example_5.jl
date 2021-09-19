@@ -11,7 +11,7 @@ function OutputSolution()
         println("y(", tspan[2], ") = ", sol[2][end])
     else
         for i = 1 : nz
-            println("y", i, "(", tspan[2], ") = ", (sol[2]')[end-nz+i])
+            println("y", i, "(", tspan[2], ") = ", (sol[2]')[end - nz + i])
         end
     end
 end
@@ -20,17 +20,17 @@ end
 function OutputConvOrder(; dde=false)
     # Check convergence order of examples
     # "dde=true" - if equation is DDE (with dicrete delays)
-    n      = 8
-    err    = zeros(n)
+    n = 8
+    err = zeros(n)
     nsteps = zeros(n)
 
-    for steppow = 1:n
+    for steppow = 1 : n
         stepsize = (2.0)^(-steppow)
         
         if dde
-            sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize,delays)
+            sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays)
         else
-            sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize)
+            sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize)
         end
 
         err[steppow] = abs(analytic_sol - sol[2][end])
@@ -38,7 +38,7 @@ function OutputConvOrder(; dde=false)
     end
 
     println()
-    println("Convergence order: ", (log10(err[end-1]) - log10(err[end])) / (log10((2.0)^(-n+1)) - log10((2.0)^(-n))));
+    println("Convergence order: ", (log10(err[end-1]) - log10(err[end])) / (log10((2.0)^(-n+1)) - log10((2.0)^(-n))))
 
     X_ticks = [(10.0)^(-x) for x in 1:15]
     Y_ticks = [(10.0)^(-x) for x in 0:0.5:3]
