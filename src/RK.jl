@@ -306,7 +306,7 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
                             teta = (d_ti[kz] - t[k]) / h
                             z[:, kz] = y[:, k] + h * (K[:, 1:i-1, k] * MatrixA(teta, i - 1))
                         else
-                            error("Overlapping.")
+                            error("Overlapping. Choose method Tavernini with key 'overlapping=true'")
                         end
                     else
                         # find t
