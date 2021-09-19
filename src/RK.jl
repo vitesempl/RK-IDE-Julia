@@ -5,7 +5,7 @@ export ide_solve
 # ============================================================================================== #
 # ============================================================================================== #
 function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=false)
-    #     idefun - right-hand side function (t - time, y - solution, z - dicrete delays, i - integral)
+    #     idefun - right-hand side function (t - time, y - solutions, z - discrete delays, i - integrals)
     #       Core - Kernel (integrated function)
     # delays_int - distributed delays function (lower integration limit)
     #    History - history function
@@ -163,12 +163,12 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
                         # Add integral in the solution to t(k)
                         for j = 2 : k
                             tj_half = t[j] - htry / 2
-                            y_half = ntrp3h(tj_half, t[j - 1], y[:, j - 1], K[:, 1, j - 1], t[j], y[:, j], K[:, 1, j])
-
+                            y_half = y[:, j - 1] + htry * ( K[:, :, j - 1] * b4(1/2) )
+                            
                             # Calculate Kernel values at the nodes
                             if neq == 1
                                 Core_tj_h = Core(ti, tj_half, y_half[1])
-                                Core_tj_1 = Core(ti, t[j], y[1,j])
+                                Core_tj_1 = Core(ti, t[j], y[1, j])
                             else
                                 Core_tj_h = Core(ti, tj_half, y_half)
                                 Core_tj_1 = Core(ti, t[j], y[:, j])
@@ -191,11 +191,9 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
                         # Add piece from dtk_begin to the mesh point in the solution
                         tj_half = (t[step + 1] + dtk_begin[ij]) / 2
 
-                        y_begin = ntrp3h(dtk_begin[ij], t[step], y[:, step], K[:, 1, step],
-                                                        t[step + 1], y[:, step + 1], K[:, 1, step + 1])
-                        y_begin_h = ntrp3h(tj_half, t[step], y[:, step], K[:, 1, step],
-                                                    t[step + 1], y[:, step + 1], K[:, 1, step + 1])
-
+                        y_begin = y[:, step] + htry * ( K[:, :, step] * b4((dtk_begin[ij] - t[step]) / htry) )
+                        y_begin_h = y[:, step] + htry * ( K[:, :, step] * b4((tj_half - t[step]) / htry) )
+                        
                         # Calculate Kernel values at the nodes
                         if neq == 1
                             Core_tj = Core(ti, dtk_begin[ij], y_begin[1])
@@ -214,8 +212,8 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
                         Core_tj = Core_tj_1
                         for j = step + 2 : k
                             tj_half = t[j] - htry / 2
-                            y_half = ntrp3h(tj_half, t[j - 1], y[:, j - 1], K[:, 1, j - 1], t[j], y[:, j], K[:, 1, j])
-
+                            y_half = y[:, j - 1] + htry * ( K[:, :, j - 1] * b4(1/2) )
+                            
                             # Calculate Kernel values at the nodes
                             if neq == 1
                                 Core_tj_h = Core(ti, tj_half, y_half[1])
@@ -309,8 +307,7 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
         y = [y y[:, k] + h * ( K[:, :, k] * b )]
         # ============================================================== #
         # Calculate K(1) for next step
-        # Hermite extrapolation for K(1,k+1)
-        y_k_half = 3/4 * y[:, k] + 1/4 * y[:, k + 1] + h/4 * K[:, 1, k]
+        y_k_half = y[:, k] + h * ( K[:, :, k] * b4(1/2) )
         if neq == 1
             Core_tj = Core(t[k + 1], t[k], y[1, k])
             Core_tk_half = Core(t[k + 1], t[k] + h / 2, y_k_half[1])
@@ -339,19 +336,6 @@ end
 # ============================================================================================== #
 # ============================================================================================== #
 
-function ntrp3h(tint, t, y, yp, tnew, ynew, ypnew)
-    # Hermite extrapolation
-    h = tnew - t
-    s = (tint - t) / h
-    s2 = s * s
-    s3 = s * s2
-    slope = (ynew - y) / h
-    c = 3 * slope - 2 * yp - ypnew
-    d = yp + ypnew - 2 * slope
-    
-    return y + (h * d * s3 + h * c * s2 + h * yp * s)           
-end
-
 function int_simpson(h, y_begin, y_end, y_half)
     # Simpson's method
     return h/6 * (y_begin + 4 * y_half + y_end)
@@ -360,37 +344,35 @@ end
 function MatrixA(a, step)
     A = zeros(step);
     if step == 0
-        A = 0;
+        A = 0
     elseif step == 1
-        A = a;
+        A = a
     elseif step == 2
-        A = [a * (1 - a * 1/2); 1/2 * a^2];
+        A = [a * (1 - a * 1/2); 1/2 * a^2]
     elseif step == 3
-        A = [a * (1 - a * 1/2); 1/2 * a^2; 0];
+        A = [a * (1 - a * 1/2); 1/2 * a^2; 0]
     elseif step == 4
-        sqrA = a^2;
+        sqrA = a^2
         A = [a * (1 + a * (-3/2 + a * 2/3)); 0; 
-                sqrA * (2 - a * 4/3); 
-                sqrA * (-1/2 + a * 2/3)];
+            sqrA * (2 - a * 4/3); sqrA * (-1/2 + a * 2/3)]
     elseif step == 5
-        sqrA = a^2;
+        sqrA = a^2
         A = [a * (1 + a * (-3/2 + a * 2/3)); 0;
-                sqrA * (1 - a * 4/3); 
-                sqrA * (-1/2 + a * 2/3); sqrA];
+            sqrA * (1 - a * 4/3); sqrA * (-1/2 + a * 2/3); sqrA]
     end
-    return A;
+    return A
 end
 
 function b4(a)
-    x = zeros(6,1);
-    sqrA = a^2;
-    x[1,1] = a * (1 + a * (-3/2 + a * 2/3));
-    x[2,1] = 0;
-    x[3,1] = 0;
-    x[4,1] = 0;
-    x[5,1] = sqrA * (2 + a * -4/3);
-    x[6,1] = sqrA * (-1/2 + a * 2/3);
-    return x;
+    x = zeros(6,1)
+    sqrA = a^2
+    x[1,1] = a * (1 + a * (-3/2 + a * 2/3))
+    x[2,1] = 0
+    x[3,1] = 0
+    x[4,1] = 0
+    x[5,1] = sqrA * (2 + a * -4/3)
+    x[6,1] = sqrA * (-1/2 + a * 2/3)
+    return x
 end
 
 end
