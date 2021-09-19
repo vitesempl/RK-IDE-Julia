@@ -1,5 +1,5 @@
 using Pkg
-Pkg.activate("./RK")
+Pkg.activate("./")
 using RK
 
 using Plots
