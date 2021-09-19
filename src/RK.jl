@@ -11,7 +11,7 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
     #    History - history function
     #      tspan - solution interval
     #   stepsize - step of numerical Runge-Kutta method
-    #     delays - (optional) dicrete delays function (if idefun has 'z')
+    #     delays - (optional) discrete delays function (if idefun has 'z')
 
     t0 = tspan[1]       # t begin
     tf = tspan[2]       # t end
