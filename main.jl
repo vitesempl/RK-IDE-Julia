@@ -23,7 +23,7 @@ end
 
 # Check 4-order of examples
 # 1 - if equation has discrete delays z, 0 - if otherwise
-function OutputConvOrder(hasDelays)
+function OutputConvOrder(; dde=false)
     n      = 8
     err    = zeros(n)
     nsteps = zeros(n)
@@ -31,7 +31,7 @@ function OutputConvOrder(hasDelays)
     for steppow = 1:n
         stepsize = (2.0)^(-steppow)
         
-        if hasDelays
+        if dde
             sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize,delays)
         else
             sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize)
@@ -59,9 +59,9 @@ end
 tspan = [1.1 5]
 stepsize = 1e-2
 idefun(t,y,z,i) = ((t - 1) * exp(t^2) * i) / (exp(-1) * y[1] - 1)
-K(t,s,y)      = y * exp(-s * t)
-delays_int(t) = t - 1 # delays of integrals
-history(t)    = exp(t)
+K(t,s,y)        = y * exp(-s * t)
+delays_int(t)   = t - 1 # lower integration limit
+history(t)      = exp(t)
 
 sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize)
 
@@ -75,12 +75,12 @@ display(plot(sol,
             title="Example 1 (Only integral)", 
             legend=:outertopright))
 
-# Check 4-order of Example 1
+# Check convergence order of Example 1
 fun(t) = exp(t)
 analytic_sol = fun(tspan[end])
 
-# 1 - if equation has discrete delays z, 0 - if otherwise
-OutputConvOrder(false) 
+# dde=true - if equation is DDE (with dicrete delays)
+OutputConvOrder() 
 
 
 # Example 2 (integral+discrete delays)
@@ -104,9 +104,9 @@ display(plot(sol,
             title="Example 2 (integral+discrete delays)", 
             legend=:outertopright))
 
-# Check 4-order of Example 1
+# Check convergence order of Example 2
 fun(t) = cos(t)
 analytic_sol = fun(tspan[end])
 
-# 1 - if equation has discrete delays z, 0 - if otherwise
-OutputConvOrder(true) 
+# dde=true - if equation is DDE (with dicrete delays)
+OutputConvOrder(dde=true)
