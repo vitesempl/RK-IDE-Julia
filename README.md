@@ -6,5 +6,5 @@ Tools and packages
 ---------
 
 * Julia 1.6
-* Jupyter Notebook / Google Colaboratory
 * Plots
+* Jupyter Notebook / Google Colaboratory
