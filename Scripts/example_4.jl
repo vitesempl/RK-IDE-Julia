@@ -17,28 +17,36 @@ function OutputSolution()
 end
 
 
-function OutputConvOrder(; dde=false)
+function OutputConvOrder(; dde=false, overlapping=false)
     # Check convergence order of examples
     # "dde=true" - if equation is DDE (with dicrete delays)
-    n = 8
-    err = zeros(n)
-    nsteps = zeros(n)
+    n_start = 2
+    n_end = 8
+    err = zeros(n_end - n_start + 1)
+    nsteps = zeros(n_end - n_start + 1)
 
-    for steppow = 1 : n
+    i = 1
+    for steppow = 2 : n_end
         stepsize = (2.0)^(-steppow)
         
         if dde
-            sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays)
+            if overlapping
+                sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays, overlapping=true)
+            else
+                sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays)
+            end
         else
             sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize)
         end
+        
+        err[i] = abs(analytic_sol - sol[2][end])
+        nsteps[i] = stepsize
 
-        err[steppow] = abs(analytic_sol - sol[2][end])
-        nsteps[steppow] = stepsize
+        i += 1
     end
 
     println()
-    println("Convergence order: ", (log10(err[end-1]) - log10(err[end])) / (log10((2.0)^(-n+1)) - log10((2.0)^(-n))))
+    println("Convergence order: ", (log10(err[end-1]) - log10(err[end])) / (log10((2.0)^(-n_end+1)) - log10((2.0)^(-n_end))))
 
     X_ticks = [(10.0)^(-x) for x in 1:15]
     Y_ticks = [(10.0)^(-x) for x in 0:0.5:3]
@@ -85,4 +93,5 @@ fun(t) = exp(t)
 analytic_sol = fun(tspan[end]);
 
 # dde=true - if equation is DDE (with dicrete delays 'z')
+# overlapping=true - if equation has overlapping in discrete delays
 OutputConvOrder(dde=true) 

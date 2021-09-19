@@ -4,7 +4,7 @@ export ide_solve
 
 # ============================================================================================== #
 # ============================================================================================== #
-function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=false)
+function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=false; overlapping=false)
     #     idefun - right-hand side function (t - time, y - solutions, z - discrete delays, i - integrals)
     #       Core - Kernel (integrated function)
     # delays_int - distributed delays function (lower integration limit)
@@ -27,18 +27,37 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
         nz = 1
     end
     # ============================================================== #
-    # VIDE Runge-Kutta Tavernini
-    A = [0 1 3/8  1/2  5/24  1/6
-         0 0 1/8  1/2     0    0
-         0 0   0    0   1/3 -1/3 
-         0 0   0    0 -1/24  1/6
-         0 0   0    0     0    1
-         0 0   0    0     0    0]
-    
-    b = [1/6; 0; 0; 0; 2/3; 1/6]
+    if overlapping
+        # VIDE Runge-Kutta Tavernini
+        A = [0 1 3/8  1/2  5/24  1/6
+            0 0 1/8  1/2     0    0
+            0 0   0    0   1/3 -1/3 
+            0 0   0    0 -1/24  1/6
+            0 0   0    0     0    1
+            0 0   0    0     0    0]
+        
+        b = [1/6; 0; 0; 0; 2/3; 1/6]
+        c = [0 1 1/2 1 1/2 1]
+        d = [1/2; 1/2; 1/2; 1/2; 1]
+        b4 = b4_Tav
+        F_stages_calc = [2 3]
+        method = "Tav"
+    else
+        # VIDE Runge-Kutta 4
+        A = [0 1/2   0  0
+            0   0 1/2  0 
+            0   0   0  1     
+            0   0   0  0 ]
+
+        b = [1/6; 1/3; 1/3; 1/6]
+        c = [0 1/2 1/2 1]
+        d = [1/2; 1/2; 1]
+        b4 = b4_RK4
+        F_stages_calc = [2 4]
+        method = "RK4"
+    end
+
     s = length(b)
-    c = [0 1 1/2 1 1/2 1]
-    d = [1/2; 1/2; 1/2; 1/2; 1]
     # ============================================================== #
     nint = length(delays_int(t0))
     # Calculate integral (F) in history
@@ -118,7 +137,7 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
             ti = t[k] + c[i] * h
             # ============================================================== #
             # Calculate integral (F)
-            if i == 2 || i == 3 # c[3] = c[2] so the same F value is used
+            if i in F_stages_calc # c[3] = c[2] so the same F value is used
                 F = zeros(nint)
                 
                 dtk_begin = delays_int(ti)  # lower integration limit
@@ -232,16 +251,28 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
                         # ============================================================== #
                     end
                 end
-                if i == 2
-                    F_1 = F
+                if method == "Tav"
+                    if i == 2
+                        F_1 = F
+                    else
+                        F_half = F
+                    end
                 else
-                    F_half = F
+                    if i == 2
+                        F_half = F
+                    end
                 end
             end
-            if i == 4 || i == 6
-                F = F_1
-            elseif i == 5
-                F = F_half
+            if method == "Tav"
+                if i == 4 || i == 6
+                    F = F_1
+                elseif i == 5
+                    F = F_half
+                end
+            else
+                if i == 3
+                    F = F_half
+                end
             end
 
             # F = ones(neq).*(exp(t[k])-exp(delays(ti)))
@@ -271,8 +302,12 @@ function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=fa
                         error("Delays went ahead.")
                     elseif t[k] - d_ti[kz] <= 0
                         # overlapping
-                        teta = (d_ti[kz] - t[k]) / h
-                        z[:, kz] = y[:, k] + h * (K[:, 1:i-1, k] * MatrixA(teta, i - 1))
+                        if method == "Tav"
+                            teta = (d_ti[kz] - t[k]) / h
+                            z[:, kz] = y[:, k] + h * (K[:, 1:i-1, k] * MatrixA(teta, i - 1))
+                        else
+                            error("Overlapping.")
+                        end
                     else
                         # find t
                         # ============ Binary search algorithm =========== #
@@ -363,7 +398,7 @@ function MatrixA(a, step)
     return A
 end
 
-function b4(a)
+function b4_Tav(a)
     x = zeros(6,1)
     sqrA = a^2
     x[1,1] = a * (1 + a * (-3/2 + a * 2/3))
@@ -372,6 +407,16 @@ function b4(a)
     x[4,1] = 0
     x[5,1] = sqrA * (2 + a * -4/3)
     x[6,1] = sqrA * (-1/2 + a * 2/3)
+    return x
+end
+
+function b4_RK4(a)
+    x = zeros(4,1)
+    sqrA = a^2
+    x[1,1] = a * (1 + a * (-3/2 + a * 2/3))
+    x[2,1] = sqrA * (1 + a * -2/3)
+    x[3,1] = sqrA * (1 + a * -2/3)
+    x[4,1] = sqrA * (-1/2 + a * 2/3)
     return x
 end
 
