@@ -3,7 +3,10 @@ if !(haskey(Pkg.dependencies(), Base.UUID("7b8691fb-d5bd-47c8-98ff-aba88156f9b3"
     Pkg.add(path="./")
 end
 
-using RK
+include("./src/RK.jl")
+using .RK
+# using RK
+
 using Plots
 
 # Output numerical solution in the end
@@ -20,7 +23,7 @@ end
 
 # Check 4-order of examples
 # 1 - if equation has discrete delays z, 0 - if otherwise
-function err_calc(hasDelays)
+function OutputConvOrder(hasDelays)
     n      = 8
     err    = zeros(n)
     nsteps = zeros(n)
@@ -29,7 +32,7 @@ function err_calc(hasDelays)
         stepsize = (2.0)^(-steppow)
         
         if hasDelays
-            sol = ide_delay_solve(idefun,delays,K,delays_int,history,tspan,stepsize)
+            sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize,delays)
         else
             sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize)
         end
@@ -54,12 +57,13 @@ end
 
 # Example 1 (only integral)
 tspan = [1.1 5]
-idefun(t,y,i) = ((t-1)*exp(t*t)*i)/(exp(-1)*y[1]-1)
-K(t,s,y)      = y*exp(-s*t)
-delays_int(t) = t-1 # delays of integrals
+stepsize = 1e-2
+idefun(t,y,z,i) = ((t - 1) * exp(t^2) * i) / (exp(-1) * y[1] - 1)
+K(t,s,y)      = y * exp(-s * t)
+delays_int(t) = t - 1 # delays of integrals
 history(t)    = exp(t)
 
-sol = ide_solve(idefun,K,delays_int,history,tspan,1e-2)
+sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize)
 
 OutputSolution()
 
@@ -76,4 +80,33 @@ fun(t) = exp(t)
 analytic_sol = fun(tspan[end])
 
 # 1 - if equation has discrete delays z, 0 - if otherwise
-err_calc(false) 
+OutputConvOrder(false) 
+
+
+# Example 2 (integral+discrete delays)
+tspan = [0 10];
+stepsize = 1e-2
+idefun(t,y,z,i) = (1+exp(-pi/2))*y-exp(-pi/2)*z-2*exp(-2*t)*i;
+K(t,s,y)        = y*exp(t+s); 
+delays(t,y)     = t-pi/2;
+delays_int(t)   = t-pi/2;
+history(t)      = cos(t);
+
+sol = ide_solve(idefun,K,delays_int,history,tspan,stepsize,delays);
+
+OutputSolution()
+
+display(plot(sol, 
+            linewidth=2, 
+            xlabel="TIME", 
+            ylabel="SOLUTION", 
+            xticks = 0:tspan[2]/10:tspan[2], 
+            title="Example 2 (integral+discrete delays)", 
+            legend=:outertopright))
+
+# Check 4-order of Example 1
+fun(t) = cos(t)
+analytic_sol = fun(tspan[end])
+
+# 1 - if equation has discrete delays z, 0 - if otherwise
+OutputConvOrder(true) 
