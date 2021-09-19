@@ -1,11 +1,15 @@
-using Pkg
-if !(haskey(Pkg.dependencies(), Base.UUID("7b8691fb-d5bd-47c8-98ff-aba88156f9b3")))
-    Pkg.add(path="./")
-end
+#using Pkg
+#if !(haskey(Pkg.dependencies(), Base.UUID("7b8691fb-d5bd-47c8-98ff-aba88156f9b3")))
+#    Pkg.add(path="./")
+#end
 
-include("./src/RK.jl")
-using .RK
+#include("./RK.jl")
+#using .RK
 # using RK
+
+using Pkg
+Pkg.activate("./RK")
+using RK
 
 using Plots
 
@@ -43,7 +47,7 @@ function OutputConvOrder(; dde=false)
 
     println("Convergence order: ",(log10(err[end-1])-log10(err[end]))/(log10((2.0)^(-n+1))-log10((2.0)^(-n))))
 
-    X_ticks = [(10.0)^(-x) for x in 1:n]
+    X_ticks = [(10.0)^(-x) for x in 1:10]
     display(plot(err, 
                 nsteps, 
                 xaxis=:log10, 
@@ -71,7 +75,7 @@ display(plot(sol,
             linewidth=2, 
             xlabel="TIME", 
             ylabel="SOLUTION", 
-            xticks = 0:tspan[2]/10:tspan[2], 
+            xticks=trunc(Int,tspan[1]):(tspan[2]-trunc(Int,tspan[1]))/10:tspan[2], 
             title="Example 1 (Only integral)", 
             legend=:outertopright))
 
