@@ -1,6 +1,5 @@
 # RK-IDE-Julia
-Package for solving integro-differential equations with discrete delays.
-The main method is the explicit 4- and 7-stage Runge-Kutta method.
+Package for solving Differential equations with Discrete and Distributed delays by the explicit Runge-Kutta method.
 
 Tools and packages
 ---------
