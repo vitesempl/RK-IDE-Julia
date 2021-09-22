@@ -5,13 +5,14 @@ export ide_solve
 # ============================================================================================== #
 # ============================================================================================== #
 function ide_solve(idefun, Core, delays_int, history, tspan, stepsize, delays=false; overlapping=false)
-    #     idefun - right-hand side function (t - time, y - solutions, z - discrete delays, i - integrals)
-    #       Core - Kernel (integrated function)
-    # delays_int - distributed delays function (lower integration limit)
-    #    History - history function
-    #      tspan - solution interval
-    #   stepsize - step of numerical Runge-Kutta method
-    #     delays - (optional) discrete delays function (if idefun has 'z')
+    #      idefun - right-hand side function (t - time, y - solution, z - dicrete delays, i - integral)
+    #        Core - Kernel (integrated function)
+    #  delays_int - distributed delays function (lower integration limit)
+    #     History - history function
+    #       tspan - solution interval
+    #    stepsize - step of numerical Runge-Kutta method
+    #      delays - (optional) discrete delays function (if idefun has 'z')
+    # overlapping - (optional) if equation has overlapping in discrete delays. This option uses the 7-step method
 
     t0 = tspan[1]       # t begin
     tf = tspan[2]       # t end
