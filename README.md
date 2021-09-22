@@ -39,6 +39,8 @@ sol = ide_solve(idefun, K, delays_int, history, tspan, stepsize, delays)
 |  5  | tspan       | solution interval |
 |  6  | stepsize    | step of numerical Runge-Kutta method |
 |  7  | delays      | (optional) discrete delays function (if idefun has 'z') |
+|  8  | overlapping | (optional) if equation has overlapping in discrete delays. This option uses the 7-step method |
+
 
 Examples of use can be found in the Notebook and in scripts from the folder `/Scripts`.
 
